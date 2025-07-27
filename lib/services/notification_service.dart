@@ -8,8 +8,8 @@ class NotificationService {
 
   static Future<void> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const ios = IOSInitializationSettings();
-    const initSettings = InitializationSettings(android: android, iOS: ios);
+    // const ios = IOSInitializationSettings();
+    const initSettings = InitializationSettings(android: android);//, iOS: ios);
     await _notifications.initialize(initSettings);
     // Timezone is initialized in main.dart, so no need to call tz.initializeTimeZones() here
     tz.setLocalLocation(tz.getLocation('UTC')); // Use UTC or adjust to local timezone if needed
@@ -30,7 +30,7 @@ class NotificationService {
         scheduledDate,
         const NotificationDetails(
           android: AndroidNotificationDetails('tasks', 'Tasks', importance: Importance.high, priority: Priority.high),
-          iOS: IOSNotificationDetails(),
+          //iOS: IOSNotificationDetails(),
         ),
         androidAllowWhileIdle: true,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
@@ -49,7 +49,7 @@ class NotificationService {
       scheduledDate,
       NotificationDetails(
         android: AndroidNotificationDetails('not_to_do', 'Not to Do', importance: Importance.high, priority: Priority.high),
-        iOS: IOSNotificationDetails(),
+        //iOS: IOSNotificationDetails(),
       ),
       androidAllowWhileIdle: true,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,

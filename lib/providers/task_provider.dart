@@ -18,10 +18,10 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> addTask(Task task) async {
-    await _dbService.insertTask(task);
-    final notificationId = (task.id ?? DateTime.now().millisecondsSinceEpoch) % 1000000;
+    final id = await _dbService.insertTask(task);
+    final notificationId = (id ?? DateTime.now().millisecondsSinceEpoch) % 1000000;
     await NotificationService.scheduleTaskNotification(task, notificationId);
-    await _dbService.updateTask(task.copyWith(notificationId: notificationId));
+    await _dbService.updateTask(task.copyWith(id: id, notificationId: notificationId));
     await loadTasks(task.dueDate);
   }
 
@@ -40,7 +40,16 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> deleteTask(int id, DateTime dueDate) async {
-    final task = _tasks.firstWhere((t) => t.id == id, orElse: () => Task(id: id, title: '', dueDate: dueDate, reminderTime: '', createdAt: DateTime.now()));
+    final task = _tasks.firstWhere(
+          (t) => t.id == id,
+      orElse: () => Task(
+        id: id,
+        title: '',
+        dueDate: dueDate,
+        reminderTime: '',
+        createdAt: DateTime.now(),
+      ),
+    );
     if (task.notificationId != null) {
       await NotificationService.cancelNotification(task.notificationId!);
     }

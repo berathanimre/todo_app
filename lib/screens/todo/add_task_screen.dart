@@ -5,6 +5,10 @@ import '../../models/task.dart';
 import 'package:intl/intl.dart';
 
 class AddTaskScreen extends StatefulWidget {
+  final Task? task; // Add task parameter for editing
+
+  AddTaskScreen({this.task});
+
   @override
   _AddTaskScreenState createState() => _AddTaskScreenState();
 }
@@ -14,18 +18,49 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   final _descriptionController = TextEditingController();
   DateTime _dueDate = DateTime.now();
   TimeOfDay _reminderTime = TimeOfDay.now();
+  bool _isTitleEmpty = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.task != null) {
+      _titleController.text = widget.task!.title;
+      _descriptionController.text = widget.task!.description ?? '';
+      _dueDate = widget.task!.dueDate;
+      _reminderTime = TimeOfDay(
+        hour: int.parse(widget.task!.reminderTime.split(':')[0]),
+        minute: int.parse(widget.task!.reminderTime.split(':')[1]),
+      );
+    }
+    _titleController.addListener(() {
+      setState(() {
+        _isTitleEmpty = _titleController.text.isEmpty;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Add Task')),
+      appBar: AppBar(title: Text(widget.task == null ? 'Add Task' : 'Edit Task')),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _titleController,
-              decoration: InputDecoration(labelText: 'Title', errorText: _titleController.text.isEmpty ? 'Required' : null),
+              decoration: InputDecoration(
+                labelText: 'Title',
+                errorText: _isTitleEmpty ? 'Required' : null,
+              ),
             ),
             TextField(
               controller: _descriptionController,
@@ -62,22 +97,43 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               },
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: _isLoading
+                  ? null
+                  : () async {
                 if (_titleController.text.isNotEmpty) {
+                  setState(() {
+                    _isLoading = true;
+                  });
                   final task = Task(
+                    id: widget.task?.id,
                     title: _titleController.text,
                     description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
                     dueDate: _dueDate,
                     reminderTime: '${_reminderTime.hour}:${_reminderTime.minute}',
-                    createdAt: DateTime.now(),
+                    isCompleted: widget.task?.isCompleted ?? false,
+                    notificationId: widget.task?.notificationId,
+                    createdAt: widget.task?.createdAt ?? DateTime.now(),
                   );
-                  await Provider.of<TaskProvider>(context, listen: false).addTask(task);
-                  Navigator.pop(context);
+                  final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+                  if (widget.task == null) {
+                    await taskProvider.addTask(task);
+                  } else {
+                    await taskProvider.updateTask(task);
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(widget.task == null ? 'Task added' : 'Task updated')),
+                  );
+                  Navigator.pop(context, _dueDate); // Return dueDate to refresh HomeScreen
+                  setState(() {
+                    _isLoading = false;
+                  });
                 } else {
-                  setState(() {}); // Trigger validation
+                  setState(() {
+                    _isTitleEmpty = true;
+                  });
                 }
               },
-              child: Text('Save'),
+              child: _isLoading ? CircularProgressIndicator() : Text('Save'),
             ),
           ],
         ),
